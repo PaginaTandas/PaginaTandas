@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="description" content="Control de tandas y pagos quincenales">
+  <title>Mis Tandas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+</head>
+<body>
+  <div class="bg-wrapper"><div class="bg-gradient"></div></div>
+
+  <section id="view-login" class="view active">
+    <div class="panel login-panel">
+      <div class="login-icon">
+        <iconify-icon icon="solar:wallet-money-bold-duotone" width="48"></iconify-icon>
+      </div>
+      <h1>Mis Tandas</h1>
+      <p class="subtitle">Control de pagos quincenales</p>
+      <form id="form-login">
+        <label class="field">
+          <span class="field-label"><iconify-icon icon="solar:user-bold" width="16"></iconify-icon> Usuario</span>
+          <input type="text" id="login-user" autocomplete="username" required placeholder="Tu usuario">
+        </label>
+        <label class="field">
+          <span class="field-label"><iconify-icon icon="solar:lock-password-bold" width="16"></iconify-icon> Contraseña</span>
+          <input type="password" id="login-pass" autocomplete="current-password" required placeholder="••••••••">
+        </label>
+        <p id="login-error" class="error-msg hidden"></p>
+        <button type="submit" class="btn btn-primary btn-block">
+          <iconify-icon icon="solar:login-3-bold" width="20"></iconify-icon> Entrar
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <section id="view-dashboard" class="view">
+    <header class="app-header panel">
+      <div class="header-left">
+        <iconify-icon icon="solar:wallet-money-bold-duotone" class="header-logo" width="28"></iconify-icon>
+        <div>
+          <h1>Mis Tandas</h1>
+          <span class="meta">Panel de control</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-logout" class="btn-icon" title="Salir">
+          <iconify-icon icon="solar:logout-3-bold" width="22"></iconify-icon>
+        </button>
+      </div>
+    </header>
+    <main class="container">
+      <p id="save-status" class="save-status hidden"></p>
+      <div id="tandas-list" class="tandas-list"></div>
+      <button id="btn-new-tanda" class="btn btn-primary btn-block">
+        <iconify-icon icon="solar:add-circle-bold" width="22"></iconify-icon> Nueva tanda
+      </button>
+      <button id="btn-load-example" class="btn btn-secondary btn-block btn-load-example">
+        <iconify-icon icon="solar:document-text-bold" width="20"></iconify-icon> Cargar tanda de ejemplo
+      </button>
+      <p class="backup-hint">Tus datos se guardan solos en este teléfono. Descarga el PDF de cada tanda cuando quieras un comprobante.</p>
+    </main>
+  </section>
+
+  <section id="view-create" class="view">
+    <header class="app-header panel">
+      <button id="btn-back-create" class="btn-icon">
+        <iconify-icon icon="solar:arrow-left-linear" width="24"></iconify-icon>
+      </button>
+      <div class="header-title">
+        <h1>Nueva tanda</h1>
+      </div>
+    </header>
+    <main class="container">
+      <div id="create-form"></div>
+      <button id="btn-save-tanda" class="btn btn-primary btn-block btn-big">
+        <iconify-icon icon="solar:check-circle-bold" width="24"></iconify-icon> Crear tanda
+      </button>
+    </main>
+  </section>
+
+  <section id="view-tanda" class="view">
+    <header class="app-header panel">
+      <button id="btn-back" class="btn-icon">
+        <iconify-icon icon="solar:arrow-left-linear" width="24"></iconify-icon>
+      </button>
+      <div class="header-title">
+        <h1 id="tanda-title">Tanda</h1>
+        <span id="tanda-meta" class="meta"></span>
+      </div>
+      <button id="btn-tanda-menu" class="btn-icon">
+        <iconify-icon icon="solar:menu-dots-bold" width="22"></iconify-icon>
+      </button>
+    </header>
+
+    <div id="tanda-menu" class="dropdown panel hidden">
+      <button data-action="pdf">
+        <iconify-icon icon="solar:file-download-bold" width="18"></iconify-icon> Descargar PDF
+      </button>
+      <button data-action="edit">
+        <iconify-icon icon="solar:pen-bold" width="18"></iconify-icon> Editar tanda
+      </button>
+      <button data-action="delete" class="danger">
+        <iconify-icon icon="solar:trash-bin-trash-bold" width="18"></iconify-icon> Eliminar tanda
+      </button>
+    </div>
+
+    <div class="tabs panel-tabs">
+      <button class="tab active" data-tab="fechas">
+        <iconify-icon icon="solar:calendar-bold" width="18"></iconify-icon> Fechas
+      </button>
+      <button class="tab" data-tab="personas">
+        <iconify-icon icon="solar:users-group-rounded-bold" width="18"></iconify-icon> Personas
+      </button>
+    </div>
+
+    <main class="container">
+      <div id="tab-fechas" class="tab-panel active">
+        <div id="fechas-list"></div>
+      </div>
+      <div id="tab-personas" class="tab-panel">
+        <div id="personas-list"></div>
+        <button id="btn-add-person" class="btn btn-secondary btn-block">
+          <iconify-icon icon="solar:add-circle-bold" width="20"></iconify-icon> Agregar otra fecha
+        </button>
+      </div>
+    </main>
+  </section>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content panel">
+      <div class="modal-header">
+        <h2 id="modal-title">Modal</h2>
+        <button id="modal-close" class="btn-icon">
+          <iconify-icon icon="solar:close-circle-bold" width="24"></iconify-icon>
+        </button>
+      </div>
+      <div id="modal-body" class="modal-body"></div>
+      <div id="modal-footer" class="modal-footer"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+{
+  "tandas": [
+    {
+      "id": "tanda-ejemplo-2025",
+      "name": "Tanda ejemplo",
+      "totalPot": 32500,
+      "amount": 2500,
+      "startDate": "2025-08-30",
+      "frequencyDays": 15,
+      "dates": [
+        "2025-08-30",
+        "2025-09-15",
+        "2025-09-30",
+        "2025-10-15",
+        "2025-10-30",
+        "2025-11-15",
+        "2025-11-30",
+        "2025-12-15",
+        "2025-12-30",
+        "2026-01-15",
+        "2026-01-30",
+        "2026-02-15",
+        "2026-02-28"
+      ],
+      "participants": [
+        {
+          "turn": 1,
+          "members": [{ "id": "p01", "name": "Claudia", "amount": 2500 }]
+        },
+        {
+          "turn": 2,
+          "members": [{ "id": "p02", "name": "Laura", "amount": 2500 }]
+        },
+        {
+          "turn": 3,
+          "members": [
+            { "id": "p03a", "name": "Carlos", "amount": 1250 },
+            { "id": "p03b", "name": "Natali", "amount": 1250 }
+          ]
+        },
+        {
+          "turn": 4,
+          "members": [{ "id": "p04", "name": "Lucero", "amount": 2500 }]
+        },
+        {
+          "turn": 5,
+          "members": [{ "id": "p05", "name": "Gladys", "amount": 2500 }]
+        },
+        {
+          "turn": 6,
+          "members": [
+            { "id": "p06a", "name": "Zaida", "amount": 1250 },
+            { "id": "p06b", "name": "Mosqueda", "amount": 1250 }
+          ]
+        },
+        {
+          "turn": 7,
+          "members": [{ "id": "p07", "name": "Nidia", "amount": 2500 }]
+        },
+        {
+          "turn": 8,
+          "members": [
+            { "id": "p08a", "name": "Kukina", "amount": 1250 },
+            { "id": "p08b", "name": "Alice", "amount": 1250 }
+          ]
+        },
+        {
+          "turn": 9,
+          "members": [
+            { "id": "p09a", "name": "Carlos", "amount": 1250 },
+            { "id": "p09b", "name": "Vicente", "amount": 1250 }
+          ]
+        },
+        {
+          "turn": 10,
+          "members": [
+            { "id": "p10a", "name": "Marisol", "amount": 1250 },
+            { "id": "p10b", "name": "Lucero", "amount": 1250 }
+          ]
+        },
+        {
+          "turn": 11,
+          "members": [{ "id": "p11", "name": "Karla Mota", "amount": 2500 }]
+        },
+        {
+          "turn": 12,
+          "members": [
+            { "id": "p12a", "name": "Nancy", "amount": 625 },
+            { "id": "p12b", "name": "Jose", "amount": 625 },
+            { "id": "p12c", "name": "Dalila", "amount": 1250 }
+          ]
+        },
+        {
+          "turn": 13,
+          "members": [{ "id": "p13", "name": "Fabi", "amount": 2500 }]
+        }
+      ],
+      "payments": {}
+    }
+  ]
+}
