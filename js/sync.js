@@ -3,6 +3,9 @@ import { getAccessToken } from './auth.js';
 
 const ROW_ID = 'main';
 let pushTimer = null;
+let pendingPush = null;
+
+export const CLOUD_SYNC_FAILED = 'mis-tandas-cloud-failed';
 
 export function isSyncConfigured(cfg) {
   return !!(cfg?.sync?.url && cfg?.sync?.key);
@@ -47,12 +50,25 @@ export async function pushCloud(cfg, data) {
   return body.updated_at;
 }
 
+function notifyPushError() {
+  window.dispatchEvent(new CustomEvent(CLOUD_SYNC_FAILED));
+}
+
 export function scheduleCloudPush(cfg, data) {
   if (!isSyncConfigured(cfg) || !getAccessToken()) return;
+  pendingPush = { cfg, data: validateData(data) };
   clearTimeout(pushTimer);
   pushTimer = setTimeout(() => {
-    pushCloud(cfg, data).catch(() => {});
-  }, 900);
+    flushCloudPush().catch(() => notifyPushError());
+  }, 400);
+}
+
+export async function flushCloudPush() {
+  if (!pendingPush) return;
+  const { cfg, data } = pendingPush;
+  pendingPush = null;
+  clearTimeout(pushTimer);
+  return pushCloud(cfg, data);
 }
 
 export async function syncFromCloud(cfg, localGetter, localSaver, getLocalUpdatedAt) {

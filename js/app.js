@@ -1,8 +1,9 @@
 import {
   isLoggedIn, verifyLogin, login, logout,
-  initData, getData, saveTanda, deleteTanda, getTanda,
+  getData, saveTanda, deleteTanda, getTanda,
   loadExampleData, getLastSavedAt, syncFromCloud, loadConfig, isCloudSyncActive, tryRefreshSession
 } from './store.js';
+import { CLOUD_SYNC_FAILED, flushCloudPush } from './sync.js';
 import { downloadTandaPDF } from './pdf.js';
 import {
   createTanda, togglePayment, addTurn, removeTurn, updateTurn,
@@ -37,27 +38,49 @@ async function boot() {
     bindEvents();
     return;
   }
-  await initData();
-  if (isLoggedIn() || await tryRefreshSession()) {
+  const hasSession = isLoggedIn() || await tryRefreshSession();
+  if (hasSession) {
     await runSync('silent');
     showDashboard();
   } else {
     showView('view-login');
   }
   bindEvents();
+  window.addEventListener(CLOUD_SYNC_FAILED, () => showToast('No se pudo guardar en la nube'));
+  document.addEventListener('visibilitychange', onAppVisible);
+  window.addEventListener('pagehide', () => { flushCloudPush().catch(() => {}); });
 }
 
 async function runSync(mode = 'toast') {
   try {
     const result = await syncFromCloud();
-    if (mode === 'silent') return;
+    if (mode === 'silent') {
+      refreshCurrentView();
+      return;
+    }
     if (result.mode === 'downloaded') showToast('Datos cargados de la nube');
     else if (result.mode === 'uploaded') showToast('Datos guardados en la nube');
     else if (result.mode === 'offline') showToast('Sin nube, usando este dispositivo');
     else if (result.mode === 'local') showToast('Entraste correctamente');
+    else if (result.mode === 'empty') showToast('Sin datos en la nube aún');
+    refreshCurrentView();
   } catch {
     if (mode !== 'silent') showToast('No se pudo sincronizar');
   }
+}
+
+function isViewActive(id) {
+  return $(`#${id}`)?.classList.contains('active');
+}
+
+function refreshCurrentView() {
+  if (isViewActive('view-dashboard')) showDashboard();
+  else if (isViewActive('view-tanda') && currentTandaId) refreshTandaView();
+}
+
+async function onAppVisible() {
+  if (document.visibilityState !== 'visible' || !isLoggedIn()) return;
+  await runSync('silent');
 }
 
 function bindEvents() {
@@ -79,6 +102,8 @@ function bindEvents() {
       $('#login-error').classList.remove('hidden');
     }
   });
+
+  $('#btn-sync').addEventListener('click', () => runSync('toast'));
 
   $('#btn-logout').addEventListener('click', () => {
     logout();

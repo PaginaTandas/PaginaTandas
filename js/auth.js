@@ -1,5 +1,6 @@
 const TOKEN_KEY = 'mis_tandas_token';
 const REFRESH_KEY = 'mis_tandas_refresh';
+const storage = localStorage;
 const AUTH_DOMAIN = '@paginatandas.internal';
 
 export function usernameToEmail(user) {
@@ -10,11 +11,11 @@ export function usernameToEmail(user) {
 }
 
 export function isAuthenticated() {
-  return !!sessionStorage.getItem(TOKEN_KEY);
+  return !!storage.getItem(TOKEN_KEY);
 }
 
 export function getAccessToken() {
-  return sessionStorage.getItem(TOKEN_KEY);
+  return storage.getItem(TOKEN_KEY);
 }
 
 export async function signIn(cfg, user, pass) {
@@ -33,13 +34,13 @@ export async function signIn(cfg, user, pass) {
   if (!res.ok) return false;
 
   const data = await res.json();
-  sessionStorage.setItem(TOKEN_KEY, data.access_token);
-  sessionStorage.setItem(REFRESH_KEY, data.refresh_token);
+  storage.setItem(TOKEN_KEY, data.access_token);
+  storage.setItem(REFRESH_KEY, data.refresh_token);
   return true;
 }
 
 export async function refreshSession(cfg) {
-  const refresh = sessionStorage.getItem(REFRESH_KEY);
+  const refresh = storage.getItem(REFRESH_KEY);
   if (!refresh) return false;
 
   const res = await fetch(`${cfg.sync.url}/auth/v1/token?grant_type=refresh_token`, {
@@ -57,12 +58,12 @@ export async function refreshSession(cfg) {
   }
 
   const data = await res.json();
-  sessionStorage.setItem(TOKEN_KEY, data.access_token);
-  sessionStorage.setItem(REFRESH_KEY, data.refresh_token);
+  storage.setItem(TOKEN_KEY, data.access_token);
+  storage.setItem(REFRESH_KEY, data.refresh_token);
   return true;
 }
 
 export function signOut() {
-  sessionStorage.removeItem(TOKEN_KEY);
-  sessionStorage.removeItem(REFRESH_KEY);
+  storage.removeItem(TOKEN_KEY);
+  storage.removeItem(REFRESH_KEY);
 }
