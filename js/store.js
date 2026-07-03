@@ -1,9 +1,10 @@
 import { validateData, normalizeTanda, assertTandaTotals } from './validate.js';
+import { isSyncConfigured, scheduleCloudPush, syncFromCloud as runCloudSync } from './sync.js';
+import { isAuthenticated, signIn, signOut, refreshSession } from './auth.js';
 
 const STORAGE_KEY = 'mis_tandas_data';
 const BACKUP_KEY = 'mis_tandas_backup';
 const META_KEY = 'mis_tandas_meta';
-const SESSION_KEY = 'mis_tandas_session';
 const EXAMPLE_ID = 'tanda-ejemplo-2025';
 const DATA_VERSION = 1;
 
@@ -22,10 +23,10 @@ function readStorage(key) {
   return validateData(JSON.parse(raw));
 }
 
-function writeMeta() {
+function writeMeta(savedAt = new Date().toISOString()) {
   localStorage.setItem(META_KEY, JSON.stringify({
     version: DATA_VERSION,
-    savedAt: new Date().toISOString()
+    savedAt
   }));
 }
 
@@ -34,25 +35,28 @@ export async function loadConfig() {
   const res = await fetch('config.json');
   if (!res.ok) throw new Error('No se pudo cargar config.json');
   config = await res.json();
-  if (!config.usuario || !config.contrasena) throw new Error('config.json incompleto');
+  if (!isSyncConfigured(config)) throw new Error('Falta configurar Supabase en config.json');
   return config;
 }
 
 export function isLoggedIn() {
-  return sessionStorage.getItem(SESSION_KEY) === '1';
+  return isAuthenticated();
 }
 
-export function login() {
-  sessionStorage.setItem(SESSION_KEY, '1');
-}
+export function login() {}
 
 export async function verifyLogin(user, pass) {
   const cfg = await loadConfig();
-  return user === cfg.usuario && pass === cfg.contrasena;
+  return signIn(cfg, user, pass);
+}
+
+export async function tryRefreshSession() {
+  const cfg = await loadConfig();
+  return refreshSession(cfg);
 }
 
 export function logout() {
-  sessionStorage.removeItem(SESSION_KEY);
+  signOut();
 }
 
 export function getData() {
@@ -67,12 +71,13 @@ export function getData() {
   }
 }
 
-export function saveData(data) {
+export function saveData(data, options = {}) {
   const validated = validateData(data);
   const json = JSON.stringify(validated);
   localStorage.setItem(STORAGE_KEY, json);
   localStorage.setItem(BACKUP_KEY, json);
-  writeMeta();
+  writeMeta(options.savedAt);
+  if (!options.skipCloud && config) scheduleCloudPush(config, validated);
   return validated;
 }
 
@@ -85,13 +90,22 @@ export function getLastSavedAt() {
   }
 }
 
+export function isCloudSyncActive() {
+  return isSyncConfigured(config) && isAuthenticated();
+}
+
+export async function syncFromCloud() {
+  const cfg = await loadConfig();
+  return runCloudSync(cfg, getData, data => saveData(data, { skipCloud: true }), getLastSavedAt);
+}
+
 export async function initData() {
   const current = getData();
   if (current.tandas.length > 0) return current;
 
   try {
     const data = await fetchTandasFile();
-    if (data.tandas.length) return saveData(data);
+    if (data.tandas.length) return saveData(data, { skipCloud: true });
     return data;
   } catch {
     return current;
@@ -108,35 +122,6 @@ export async function loadExampleData() {
   if (idx >= 0) current.tandas[idx] = example;
   else current.tandas.push(example);
   return saveData(current);
-}
-
-export function exportJSON() {
-  const data = getData();
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `tandas-respaldo-${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  writeMeta();
-}
-
-export function importJSON(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const data = validateData(JSON.parse(reader.result));
-        saveData(data);
-        resolve(data);
-      } catch (e) {
-        reject(e);
-      }
-    };
-    reader.onerror = reject;
-    reader.readAsText(file);
-  });
 }
 
 export function getTanda(id) {

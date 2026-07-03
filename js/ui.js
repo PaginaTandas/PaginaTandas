@@ -25,17 +25,23 @@ export function closeModal() {
   $('#modal').classList.add('hidden');
 }
 
-export function renderDashboard(tandas, onOpen, onDownloadPDF, lastSavedAt = null) {
+export function renderDashboard(tandas, onOpen, onDownloadPDF, lastSavedAt = null, cloudSync = false) {
   const list = $('#tandas-list');
   const status = $('#save-status');
 
   if (status) {
-    if (lastSavedAt) {
+    if (cloudSync) {
+      const when = lastSavedAt
+        ? new Date(lastSavedAt).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+        : 'ahora';
+      status.innerHTML = `<iconify-icon icon="solar:cloud-check-bold" width="16"></iconify-icon> Sincronizado en la nube · ${when}`;
+      status.classList.remove('hidden');
+    } else if (lastSavedAt) {
       const when = new Date(lastSavedAt);
       const label = when.toLocaleString('es-MX', {
         day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
       });
-      status.innerHTML = `<iconify-icon icon="solar:shield-check-bold" width="16"></iconify-icon> Guardado en este dispositivo · ${label}`;
+      status.innerHTML = `<iconify-icon icon="solar:shield-check-bold" width="16"></iconify-icon> Solo en este dispositivo · ${label}`;
       status.classList.remove('hidden');
     } else {
       status.classList.add('hidden');

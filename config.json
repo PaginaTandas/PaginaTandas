@@ -1,4 +1,6 @@
 {
-  "usuario": "user",
-  "contrasena": "Poliglota1956"
+  "sync": {
+    "url": "https://ytpnntnuxplinkmwxubs.supabase.co",
+    "key": "sb_publishable_pJtKwAcxH0Z1PVuyIMkXog_HUQhplor"
+  }
 }

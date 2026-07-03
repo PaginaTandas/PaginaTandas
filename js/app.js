@@ -1,7 +1,7 @@
 import {
   isLoggedIn, verifyLogin, login, logout,
   initData, getData, saveTanda, deleteTanda, getTanda,
-  loadExampleData, getLastSavedAt
+  loadExampleData, getLastSavedAt, syncFromCloud, loadConfig, isCloudSyncActive, tryRefreshSession
 } from './store.js';
 import { downloadTandaPDF } from './pdf.js';
 import {
@@ -28,10 +28,36 @@ let createState = {
 };
 
 async function boot() {
+  try {
+    await loadConfig();
+  } catch {
+    showView('view-login');
+    $('#login-error').textContent = 'Falta configurar Supabase. Revisa SYNC.md';
+    $('#login-error').classList.remove('hidden');
+    bindEvents();
+    return;
+  }
   await initData();
-  if (isLoggedIn()) showDashboard();
-  else showView('view-login');
+  if (isLoggedIn() || await tryRefreshSession()) {
+    await runSync('silent');
+    showDashboard();
+  } else {
+    showView('view-login');
+  }
   bindEvents();
+}
+
+async function runSync(mode = 'toast') {
+  try {
+    const result = await syncFromCloud();
+    if (mode === 'silent') return;
+    if (result.mode === 'downloaded') showToast('Datos cargados de la nube');
+    else if (result.mode === 'uploaded') showToast('Datos guardados en la nube');
+    else if (result.mode === 'offline') showToast('Sin nube, usando este dispositivo');
+    else if (result.mode === 'local') showToast('Entraste correctamente');
+  } catch {
+    if (mode !== 'silent') showToast('No se pudo sincronizar');
+  }
 }
 
 function bindEvents() {
@@ -46,9 +72,10 @@ function bindEvents() {
         return;
       }
       login();
+      await runSync();
       showDashboard();
     } catch {
-      $('#login-error').textContent = 'No se pudo verificar el acceso. Recarga la pagina.';
+      $('#login-error').textContent = 'No se pudo conectar con Supabase';
       $('#login-error').classList.remove('hidden');
     }
   });
@@ -119,7 +146,13 @@ function downloadTandaPDFAction(id) {
 
 function showDashboard() {
   currentTandaId = null;
-  renderDashboard(getData().tandas, openTanda, downloadTandaPDFAction, getLastSavedAt());
+  renderDashboard(
+    getData().tandas,
+    openTanda,
+    downloadTandaPDFAction,
+    getLastSavedAt(),
+    isCloudSyncActive()
+  );
   showView('view-dashboard');
 }
 
