@@ -49,6 +49,8 @@ create policy "guardar datos" on tandas_data
 
 create policy "actualizar datos" on tandas_data
   for update using (auth.role() = 'authenticated');
+
+alter publication supabase_realtime add table tandas_data;
 ```
 
 ## Paso 5 — config.json

@@ -2,13 +2,22 @@ import { validateData } from './validate.js';
 import { getAccessToken } from './auth.js';
 
 const ROW_ID = 'main';
+const POLL_MS = 2000;
 let pushTimer = null;
 let pendingPush = null;
+let watchStop = null;
+let lastSeenRemoteAt = 0;
 
 export const CLOUD_SYNC_FAILED = 'mis-tandas-cloud-failed';
 
 export function isSyncConfigured(cfg) {
   return !!(cfg?.sync?.url && cfg?.sync?.key);
+}
+
+export function markRemoteSeen(iso) {
+  if (!iso) return;
+  const t = new Date(iso).getTime();
+  if (t > lastSeenRemoteAt) lastSeenRemoteAt = t;
 }
 
 function headers(cfg) {
@@ -47,6 +56,7 @@ export async function pushCloud(cfg, data) {
     body: JSON.stringify(body)
   });
   if (!res.ok) throw new Error('No se pudo guardar en la nube');
+  markRemoteSeen(body.updated_at);
   return body.updated_at;
 }
 
@@ -60,7 +70,7 @@ export function scheduleCloudPush(cfg, data) {
   clearTimeout(pushTimer);
   pushTimer = setTimeout(() => {
     flushCloudPush().catch(() => notifyPushError());
-  }, 400);
+  }, 200);
 }
 
 export async function flushCloudPush() {
@@ -95,10 +105,72 @@ export async function syncFromCloud(cfg, localGetter, localSaver, getLocalUpdate
   const localTime = localAt ? new Date(localAt).getTime() : 0;
 
   if (!local.tandas.length || cloudAt >= localTime) {
-    localSaver(cloud.payload);
+    localSaver(cloud.payload, cloud.updated_at);
+    markRemoteSeen(cloud.updated_at);
     return { mode: 'downloaded' };
   }
 
   await pushCloud(cfg, local);
   return { mode: 'uploaded' };
+}
+
+async function checkRemote(cfg, applyRemote, getLocalUpdatedAt) {
+  if (!getAccessToken()) return;
+  let cloud;
+  try {
+    cloud = await pullCloud(cfg);
+  } catch {
+    return;
+  }
+  if (!cloud) return;
+
+  const cloudAt = new Date(cloud.updated_at).getTime();
+  if (cloudAt <= lastSeenRemoteAt) return;
+
+  const localTime = getLocalUpdatedAt()
+    ? new Date(getLocalUpdatedAt()).getTime()
+    : 0;
+
+  if (cloudAt >= localTime) {
+    lastSeenRemoteAt = cloudAt;
+    applyRemote(cloud.payload, cloud.updated_at);
+  }
+}
+
+export async function startCloudWatch(cfg, applyRemote, getLocalUpdatedAt) {
+  stopCloudWatch();
+
+  const poll = () => checkRemote(cfg, applyRemote, getLocalUpdatedAt);
+  const pollId = setInterval(poll, POLL_MS);
+
+  let realtimeCleanup = () => {};
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/+esm');
+    const client = createClient(cfg.sync.url, cfg.sync.key);
+    client.realtime.setAuth(getAccessToken());
+    const channel = client
+      .channel('tandas-main')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'tandas_data',
+        filter: `id=eq.${ROW_ID}`
+      }, () => { poll(); })
+      .subscribe();
+    realtimeCleanup = () => { client.removeChannel(channel); };
+  } catch {
+    /* polling sigue activo */
+  }
+
+  watchStop = () => {
+    clearInterval(pollId);
+    realtimeCleanup();
+    watchStop = null;
+  };
+
+  await poll();
+}
+
+export function stopCloudWatch() {
+  watchStop?.();
 }

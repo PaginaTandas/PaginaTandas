@@ -1,5 +1,5 @@
 import { validateData, normalizeTanda, assertTandaTotals } from './validate.js';
-import { isSyncConfigured, scheduleCloudPush, syncFromCloud as runCloudSync } from './sync.js';
+import { isSyncConfigured, scheduleCloudPush, syncFromCloud as runCloudSync, startCloudWatch, stopCloudWatch, markRemoteSeen } from './sync.js';
 import { isAuthenticated, signIn, signOut, refreshSession } from './auth.js';
 
 const STORAGE_KEY = 'mis_tandas_data';
@@ -56,6 +56,7 @@ export async function tryRefreshSession() {
 }
 
 export function logout() {
+  stopLiveSync();
   signOut();
 }
 
@@ -77,6 +78,7 @@ export function saveData(data, options = {}) {
   localStorage.setItem(STORAGE_KEY, json);
   localStorage.setItem(BACKUP_KEY, json);
   writeMeta(options.savedAt);
+  if (options.savedAt) markRemoteSeen(options.savedAt);
   if (!options.skipCloud && config) scheduleCloudPush(config, validated);
   return validated;
 }
@@ -96,7 +98,28 @@ export function isCloudSyncActive() {
 
 export async function syncFromCloud() {
   const cfg = await loadConfig();
-  return runCloudSync(cfg, getData, data => saveData(data, { skipCloud: true }), getLastSavedAt);
+  return runCloudSync(
+    cfg,
+    getData,
+    (data, savedAt) => saveData(data, { skipCloud: true, savedAt }),
+    getLastSavedAt
+  );
+}
+
+export async function startLiveSync(onUpdate) {
+  const cfg = await loadConfig();
+  await startCloudWatch(
+    cfg,
+    (payload, savedAt) => {
+      saveData(payload, { skipCloud: true, savedAt });
+      onUpdate?.();
+    },
+    getLastSavedAt
+  );
+}
+
+export function stopLiveSync() {
+  stopCloudWatch();
 }
 
 export async function initData() {

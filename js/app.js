@@ -1,7 +1,8 @@
 import {
   isLoggedIn, verifyLogin, login, logout,
   getData, saveTanda, deleteTanda, getTanda,
-  loadExampleData, getLastSavedAt, syncFromCloud, loadConfig, isCloudSyncActive, tryRefreshSession
+  loadExampleData, getLastSavedAt, syncFromCloud, loadConfig, isCloudSyncActive, tryRefreshSession,
+  startLiveSync
 } from './store.js';
 import { CLOUD_SYNC_FAILED, flushCloudPush } from './sync.js';
 import { downloadTandaPDF } from './pdf.js';
@@ -40,32 +41,27 @@ async function boot() {
   }
   const hasSession = isLoggedIn() || await tryRefreshSession();
   if (hasSession) {
-    await runSync('silent');
-    showDashboard();
+    await enterApp();
   } else {
     showView('view-login');
   }
   bindEvents();
   window.addEventListener(CLOUD_SYNC_FAILED, () => showToast('No se pudo guardar en la nube'));
-  document.addEventListener('visibilitychange', onAppVisible);
   window.addEventListener('pagehide', () => { flushCloudPush().catch(() => {}); });
 }
 
-async function runSync(mode = 'toast') {
+async function enterApp() {
+  await runSync();
+  await startLiveSync(refreshCurrentView);
+  showDashboard();
+}
+
+async function runSync() {
   try {
-    const result = await syncFromCloud();
-    if (mode === 'silent') {
-      refreshCurrentView();
-      return;
-    }
-    if (result.mode === 'downloaded') showToast('Datos cargados de la nube');
-    else if (result.mode === 'uploaded') showToast('Datos guardados en la nube');
-    else if (result.mode === 'offline') showToast('Sin nube, usando este dispositivo');
-    else if (result.mode === 'local') showToast('Entraste correctamente');
-    else if (result.mode === 'empty') showToast('Sin datos en la nube aún');
+    await syncFromCloud();
     refreshCurrentView();
   } catch {
-    if (mode !== 'silent') showToast('No se pudo sincronizar');
+    /* silencioso */
   }
 }
 
@@ -80,10 +76,12 @@ function refreshCurrentView() {
 
 async function onAppVisible() {
   if (document.visibilityState !== 'visible' || !isLoggedIn()) return;
-  await runSync('silent');
+  await runSync();
 }
 
 function bindEvents() {
+  document.addEventListener('visibilitychange', onAppVisible);
+
   $('#form-login').addEventListener('submit', async e => {
     e.preventDefault();
     $('#login-error').classList.add('hidden');
@@ -95,15 +93,12 @@ function bindEvents() {
         return;
       }
       login();
-      await runSync();
-      showDashboard();
+      await enterApp();
     } catch {
       $('#login-error').textContent = 'No se pudo conectar con Supabase';
       $('#login-error').classList.remove('hidden');
     }
   });
-
-  $('#btn-sync').addEventListener('click', () => runSync('toast'));
 
   $('#btn-logout').addEventListener('click', () => {
     logout();
